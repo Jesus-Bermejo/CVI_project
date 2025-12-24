@@ -7,7 +7,7 @@ def detect_paper(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     #gray = np.where(gray<220, 0, gray).astype(np.uint8)
     blur = cv2.GaussianBlur(gray, (7,7), 1)
-    edges = cv2.Canny(blur, 50, 200)
+    edges = cv2.Canny(blur, 100, 200)
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
     edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
