@@ -2,7 +2,7 @@ import cv2
 from typing import List
 import numpy as np
 import copy
-from funciones import *
+from CVI_project.calibration.funciones_calibracion import *
 import os
 
 print(os.getcwd())

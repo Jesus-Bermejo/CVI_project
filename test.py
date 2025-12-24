@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from security_functions import *
 
 data = np.load("calibration_jesus.npz")
 cameraMatrix = data["cameraMatrix"]
@@ -55,8 +56,35 @@ def main(camera_index=0, width=1280, height=720):
             # Optional: flip horizontally (mirror), comment out if not desired
             uframe = cv2.flip(uframe, 1)
 
-            # Display the frame
-            cv2.imshow(window_name, uframe)
+            gray = cv2.cvtColor(uframe, cv2.COLOR_BGR2GRAY)
+            #gray = np.where(gray<220, 0, gray).astype(np.uint8)
+            blur = cv2.GaussianBlur(gray, (7,7), 1)
+            edges = cv2.Canny(blur, 50, 200)
+
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+            edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+            contours, _ = cv2.findContours(
+                edges,
+                cv2.RETR_EXTERNAL,
+                cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            box = detect_paper(uframe)
+
+            if box:
+                x, y, w, h = box
+                cv2.rectangle(uframe, (x, y), (x + w, y + h), (0,255,0), 2)
+                paper_roi = uframe[y:y+h, x:x+w]
+            else:
+                cv2.putText(uframe, "No paper detected", (30,50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+
+            cv2.imshow("Frame", uframe)
+            cv2.imshow("gray", gray)
+            cv2.imshow("blur", blur)
+            cv2.imshow("edges", edges)
+            #cv2.imshow("contours", contours)
 
             # Wait 1 ms for a key; exit with 'q' or ESC
             key = cv2.waitKey(1) & 0xFF
