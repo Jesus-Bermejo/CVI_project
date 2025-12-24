@@ -56,11 +56,15 @@ def main(camera_index=0, width=1280, height=720):
             uframe = cv2.flip(uframe, 1)
 
             # Display the frame
-            cv2.imshow(window_name, uframe)
+            frame = cv2.flip(frame, 1)
+            combined = np.hstack((frame, uframe))
+            cv2.imshow("Original | Undistorted", combined)
+            #cv2.imshow(window_name, uframe)
 
             # Wait 1 ms for a key; exit with 'q' or ESC
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q') or key == 27:
+                print(roi)
                 break
     except KeyboardInterrupt:
         pass

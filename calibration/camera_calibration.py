@@ -31,7 +31,7 @@ corners = all_corners
 imgs = good_imgs
 
 corners_copy = copy.deepcopy(corners)
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.01)
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
  
 # To refine corner detections with cv2.cornerSubPix() you need to input grayscale images. Build a list containing grayscale images.
 imgs_gray = [cv2.cvtColor(image,cv2.COLOR_BGR2GRAY) for image in imgs]
@@ -48,7 +48,7 @@ imgs_path = [os.path.join(results_parent_path, f"{i+1}.jpg") for i in range(len(
 for i in range(len(corners_drawn_images)):
     write_image(imgs_path[i], corners_drawn_images[i])
 
-objp_template = get_chessboard_points((9,6), 30, 30)
+objp_template = get_chessboard_points((9,6), 25, 25)
 print("Número de puntos 3D del tablero:", objp_template.shape[0])
 
 points_3d: List[np.ndarray] = []
