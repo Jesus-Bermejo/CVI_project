@@ -75,40 +75,31 @@ def main(camera_index=0, width=1280, height=720):
             if box:
                 x, y, w, h = box
                 cv2.rectangle(uframe, (x, y), (x + w, y + h), (0,255,0), 2)
-                # Aquí empezamos a aislar la letra
 
                 square_roi = uframe[y:y+h, x:x+w]
                 gray = cv2.cvtColor(square_roi, cv2.COLOR_BGR2GRAY)
-                margin = int(0.1 * min(w, h))  # 10% del tamaño
+
+                margin = int(0.1 * min(w, h))
                 inner = gray[margin:h-margin, margin:w-margin]
-                binary = np.where(inner<100, 0, 255).astype(np.uint8)
-                # esto podría ser opcional, pero mejora las predicciones
+
+                binary = np.where(inner < 180, 0, 255).astype(np.uint8)
+
                 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
                 binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
 
-                contours, _ = cv2.findContours(
-                    255 - binary,  # invertimos SOLO para encontrar contornos
-                    cv2.RETR_EXTERNAL,
-                    cv2.CHAIN_APPROX_SIMPLE
-                )
+                inner_x = x + margin
+                inner_y = y + margin
+                inner_w = w - 2 * margin
+                inner_h = h - 2 * margin
 
-                if not contours:
-                    continue
+                cv2.rectangle(uframe, (inner_x, inner_y), (inner_x + inner_w, inner_y + inner_h), (0, 0, 255), 2)
 
-                char_cnt = max(contours, key=cv2.contourArea)
-                x_c, y_c, w_c, h_c = cv2.boundingRect(char_cnt)
-                abs_x = x + margin + x_c
-                abs_y = y + margin + y_c
+                char_roi = 255 - binary
+                char_28 = cv2.resize(char_roi, (28,28), interpolation=cv2.INTER_AREA)
 
-                cv2.rectangle(uframe, (abs_x, abs_y), (abs_x + w_c, abs_y + h_c), (0,0,255), 2)
-
-                char_roi = binary[y_c:y_c+h_c, x_c:x_c+w_c]
-                char_roi = 255 - char_roi
-                char_28 = cv2.resize(char_roi, (28,28), interpolation=cv2.INTER_AREA)   # resize para la NN
-
-                cv2.imshow("28", char_28)
-                cv2.imshow("roi", char_roi)
                 cv2.imshow("bin", binary)
+                cv2.imshow("roi", char_roi)
+                cv2.imshow("28", char_28)
 
 
             else:
