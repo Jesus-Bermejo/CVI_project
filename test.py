@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
-from security_functions import *
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+from security_utils import *
 import joblib
 import time
 import string
@@ -9,13 +13,17 @@ data = np.load("calibration_jesus.npz")
 cameraMatrix = data["cameraMatrix"]
 distCoeffs = data["distCoeffs"]
 
-model = joblib.load("char_mlp.pkl")
+#model = joblib.load("char_mlp.pkl")
+
+model = EMNIST_CNN()
+model.load_state_dict(torch.load("emnist_cnn_balanced.pth", map_location="cpu"))
+model.eval()
 
 # PARAMS SECURITY
 CHANGE_THRESHOLD = 1000
 FORGET_TIME = 3.0
 CONFIRMATION_TIME = 2.0
-CONF_THRESHOLD = 0.9
+CONF_THRESHOLD = 0.8
 
 digits = {i: str(i) for i in range(10)}
 letters = {i+10: c for i, c in enumerate(string.ascii_uppercase)}
@@ -126,13 +134,20 @@ def main(camera_index=0, width=1280, height=720):
                 last_roi_frame = char_28
                 last_seen_time = current_time
 
+                display_text = "Waiting..."
                 if diff > CHANGE_THRESHOLD:
-                    char_flat = char_28.astype(np.float32) / 255.0
-                    char_flat = char_flat.reshape(1, -1)
+                    # CHATGPT Preprocesado para PyTorch: [1, 1, 28, 28]
+                    char_tensor = torch.tensor(
+                        char_28 / 255.0,
+                        dtype=torch.float32
+                    ).unsqueeze(0).unsqueeze(0)
 
-                    probs = model.predict_proba(char_flat)[0]
-                    pred_class = model.classes_[np.argmax(probs)]
-                    confidence = np.max(probs)
+                    with torch.no_grad():
+                        logits = model(char_tensor)
+                        probs = torch.softmax(logits, dim=1)[0].numpy()
+
+                    pred_class = np.argmax(probs)
+                    confidence = probs[pred_class]
 
                     if confidence < CONF_THRESHOLD:
                         display_text = "Rejected"
@@ -141,6 +156,7 @@ def main(camera_index=0, width=1280, height=720):
                         display_text = f"Detected: {pred_char} ({confidence:.2f})"
 
                         if pred_char != last_char:
+                            char_confirmation = False
                             first_seen_time = current_time
                             last_char = pred_char
                             print("Checking input...")
