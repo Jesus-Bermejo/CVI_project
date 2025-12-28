@@ -42,6 +42,7 @@ def main(camera_index=0, width=1280, height=720):
 
     # Force to use DIRECTSHOW
 
+    attempts = 5
     true_password = "JESUS25"
     password_input = []
     last_char = None
@@ -168,6 +169,10 @@ def main(camera_index=0, width=1280, height=720):
                             if not true_password.startswith(''.join(password_input)):
                                 print("Contraseña incorrecta, inténtalo de nuevo")
                                 password_input = []
+                                attempts -= 1
+                                if attempts == 0:
+                                    print("You ran out of attempts")
+                                    return 0
                             elif true_password == ''.join(password_input):
                                 print("Contrasña correcta")
                                 return 1
@@ -183,8 +188,8 @@ def main(camera_index=0, width=1280, height=720):
 
 
             else:
-                cv2.putText(uframe, "No paper detected", (30,50),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+                cv2.putText(uframe, "No paper detected", (30,100),   # (horizontal, vertical)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,0,255), 2)
                 if last_seen_time is None:
                     last_seen_time = current_time
                 elif current_time - last_seen_time > FORGET_TIME:
@@ -193,6 +198,11 @@ def main(camera_index=0, width=1280, height=720):
                     last_roi_frame = None
                     char_confirmation = False
 
+
+            cv2.putText(uframe, f"Password: {''.join(password_input)}", (30,50),   # (horizontal, vertical)
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2)
+            cv2.putText(uframe, f"Attempts: {attempts}", (460,50),   # (horizontal, vertical)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,0), 2)
             cv2.imshow("Frame", uframe)
             #cv2.imshow("gray", gray)
             #cv2.imshow("blur", blur)
