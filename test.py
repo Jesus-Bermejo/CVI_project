@@ -42,7 +42,8 @@ def main(camera_index=0, width=1280, height=720):
 
     # Force to use DIRECTSHOW
 
-    password = []
+    true_password = "JESUS25"
+    password_input = []
     last_char = None
     last_roi_frame = None
     last_seen_time = None
@@ -162,8 +163,14 @@ def main(camera_index=0, width=1280, height=720):
                             print("Checking input...")
                         elif current_time - first_seen_time > CONFIRMATION_TIME and not char_confirmation:
                             char_confirmation = True
-                            password.append(pred_char)
-                            print(f"New input detected: {pred_char} -> Current password: {''.join(password)}")
+                            password_input.append(pred_char)
+                            print(f"New input detected: {pred_char} -> Current password_input: {''.join(password_input)}")
+                            if not true_password.startswith(''.join(password_input)):
+                                print("Contraseña incorrecta, inténtalo de nuevo")
+                                password_input = []
+                            elif true_password == ''.join(password_input):
+                                print("Contrasña correcta")
+                                return 1
 
 
                 cv2.putText(uframe, display_text, (inner_x, inner_y - 10),
