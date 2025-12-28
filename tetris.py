@@ -27,7 +27,6 @@ def punto(landmarks,i,w,h):
     :param w: Anchura de la imagen en píxeles
     :param h: Altura de la imagen en píxeles
     """
-
     return np.array([w*landmarks[i].x,h*landmarks[i].y])
 
 
@@ -40,7 +39,7 @@ def dist_puntos(p1,p2):
     """
     return np.sqrt((p2[0]-p1[0])**2+(p2[1]-p1[1])**2)
 
-def pestaneo(p_sup, p_inf):
+def pestaneo(p_sup, p_inf,o_izq,o_der):
     """
     Verifica si los ojos están cerrados computando la distancia entre el párpado superior derecho y el inferior derecho.
     Se ha elegido 20 como threshold para definir un ojo cerrado o abierto tras varias pruebas con imágenes propias.
@@ -49,8 +48,9 @@ def pestaneo(p_sup, p_inf):
     :param p_inf: Pixel representando el párpado superior derecho
     """
     dist_ojos = dist_puntos(p_sup,p_inf)
-    print(dist_ojos)
-    if dist_ojos < 10:
+    dist_orejas = dist_puntos(o_izq,o_der)
+
+    if dist_ojos/dist_orejas < 0.1:
         return True
     else:
         return False
@@ -69,9 +69,9 @@ def inclinacion_cabeza(o_izq,o_der):
 
 def movimiento(inclinacion):
     if inclinacion > 0.5:
-        return "derecha"
-    elif inclinacion < -0.5:
         return "izquierda"
+    elif inclinacion < -0.5:
+        return "derecha"
     else:
         return "Nada"
     
@@ -92,15 +92,18 @@ while cap.isOpened():
     w,h,_ = frame.shape
     p_sup = punto(landmarks,386,w,h)   #386  =  landmark del parpado superior derecho
     p_inf = punto(landmarks,374,w,h)   #374  =  landmark del parpado inferior derecho
-    o_der = punto(landmarks,454,w,h)     #454  =  landmark de la oreja derecha
-    o_izq = punto(landmarks,234,w,h)     #234  =  landmark de la oreja izquierda
+    o_der = punto(landmarks,454,w,h)   #454  =  landmark de la oreja derecha
+    o_izq = punto(landmarks,234,w,h)   #234  =  landmark de la oreja izquierda
 
-    pstn = pestaneo(p_sup,p_inf)
+    pstn = pestaneo(p_sup,p_inf,o_der,o_izq)
     inclinacion = inclinacion_cabeza(o_izq,o_der)
     mvmnt = movimiento(inclinacion)
-    print(pstn)
-    if pstn == True:
-        print("Pestañeó")
+    
+    
     if mvmnt != "Nada":
         print(f"Movió hacia la {mvmnt}")
+        print("CACA")
+    elif pstn == True:
+        print("Pestañeó")
+        print("PIPI")
 
