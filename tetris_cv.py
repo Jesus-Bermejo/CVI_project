@@ -80,7 +80,10 @@ def movimiento(inclinacion):
         return "derecha"
     else:
         return "Nada"
-def computer_vision():
+    
+
+
+def computer_vision(app):
     cap = cv2.VideoCapture(0)
     cara = mediapipe.solutions.face_mesh.FaceMesh()
     blink_cooldown = time()   #temporizadores para que no tome el mismo movimiento dos veces seguidas
@@ -94,6 +97,9 @@ def computer_vision():
 
 
         frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)   #mediapipe trabaja con formate rgb
+
+        
+
         multiface_landmarks = cara.process(frame)
         landmarks = multiface_landmarks.multi_face_landmarks[0].landmark
 
@@ -112,11 +118,13 @@ def computer_vision():
             head_cooldown = time()
             print("----------------------------------------")
             print(f"Movió hacia la {mvmnt}")
+            app.cola_de_eventos.put(mvmnt)
             print("----------------------------------------")
         elif pstn == True and (time() - blink_cooldown) > 0.5 and (time() - head_cooldown) > 0.5:
             blink_cooldown = time()
             print("----------------------------------------")
             print("Pestañeó")
+            app.cola_de_eventos.put("PSTN")
             print("----------------------------------------")
         
 

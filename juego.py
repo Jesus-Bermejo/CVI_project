@@ -1,6 +1,8 @@
 import tkinter as tk
 import random
-from threading import Lock
+from threading import Lock, Thread
+from queue import Queue
+import tetris_cv
 
 
 COLORS = ['gray', 'lightgreen', 'pink', 'blue', 'orange', 'purple']
@@ -96,10 +98,25 @@ class Application(tk.Frame):
         self.tetris = Tetris()
         self.pack()
         self.create_widgets()
+        self.cola_de_eventos = Queue()
+        self.procesar_eventos()
         self.update_clock()
+        
+    
+    def procesar_eventos(self):
+        while not self.cola_de_eventos.empty():
+            evento = self.cola_de_eventos.get()
+            
+            if evento == "PSTN":
+                self.tetris.rotate()
+            elif evento == "derecha":
+                self.tetris.move(0,1)
+            elif evento == "izquierda":
+                self.tetris.move(0,-1)
 
     def update_clock(self):
         self.tetris.move(1, 0)
+        self.procesar_eventos()
         self.update()  
         self.master.after(int(1000*(0.66**self.tetris.level)), self.update_clock)
     
@@ -107,10 +124,10 @@ class Application(tk.Frame):
         PIECE_SIZE = 30
         self.canvas = tk.Canvas(self, height=PIECE_SIZE*self.tetris.FIELD_HEIGHT, 
                                       width = PIECE_SIZE*self.tetris.FIELD_WIDTH, bg="black", bd=0)
-        self.canvas.bind('<Left>', lambda _: (self.tetris.move(0, -1), self.update()))
+        """self.canvas.bind('<Left>', lambda _: (self.tetris.move(0, -1), self.update()))
         self.canvas.bind('<Right>', lambda _: (self.tetris.move(0, 1), self.update()))
         self.canvas.bind('<Down>', lambda _: (self.tetris.move(1, 0), self.update()))
-        self.canvas.bind('<Up>', lambda _: (self.tetris.rotate(), self.update()))
+        self.canvas.bind('<Up>', lambda _: (self.tetris.rotate(), self.update()))"""
         self.canvas.focus_set()
         self.rectangles = [
             self.canvas.create_rectangle(c*PIECE_SIZE, r*PIECE_SIZE, (c+1)*PIECE_SIZE, (r+1)*PIECE_SIZE)
@@ -130,6 +147,11 @@ class Application(tk.Frame):
         self.status_msg['text'] = "Score: {}\nLevel: {}".format(self.tetris.score, self.tetris.level)
         self.game_over_msg['text'] = "GAME OVER.\nPress UP\nto reset" if self.tetris.game_over else ""
 
+
+
 root = tk.Tk()
 app = Application(master=root)
+hilo = Thread(target=tetris_cv.computer_vision,args = (app,))
+hilo.start()
 app.mainloop()
+hilo.join()
