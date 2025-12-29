@@ -17,6 +17,7 @@ de False a True.
 import cv2
 import mediapipe
 import numpy as np
+from time import time
 
 def punto(landmarks,i,w,h):
     """
@@ -50,7 +51,7 @@ def pestaneo(p_sup, p_inf,o_izq,o_der):
     dist_ojos = dist_puntos(p_sup,p_inf)
     dist_orejas = dist_puntos(o_izq,o_der)
 
-    if dist_ojos/dist_orejas < 0.1:
+    if dist_ojos/dist_orejas < 0.07:
         return True
     else:
         return False
@@ -68,42 +69,54 @@ def inclinacion_cabeza(o_izq,o_der):
     return cambio_y/cambio_x
 
 def movimiento(inclinacion):
-    if inclinacion > 0.5:
+    """
+    Toma la inclinación de la cabeza y devuelve si se ha inclinado hacia un lado, hacia el otro, o no se ha inclinado
+    
+    :param inclinacion: Descripción
+    """
+    if inclinacion > 0.4:
         return "izquierda"
-    elif inclinacion < -0.5:
+    elif inclinacion < -0.4:
         return "derecha"
     else:
         return "Nada"
-    
-cap = cv2.VideoCapture(0)
-cara = mediapipe.solutions.face_mesh.FaceMesh()
+def computer_vision():
+    cap = cv2.VideoCapture(0)
+    cara = mediapipe.solutions.face_mesh.FaceMesh()
+    blink_cooldown = time()   #temporizadores para que no tome el mismo movimiento dos veces seguidas
+    head_cooldown = time()
 
-while cap.isOpened():
-    ret,frame = cap.read()
-    if not ret:
-        break
+    while cap.isOpened():
+        ret,frame = cap.read()
+        if not ret:
+            break
 
 
 
-    frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)   #mediapipe trabaja con formate rgb
-    multiface_landmarks = cara.process(frame)
-    landmarks = multiface_landmarks.multi_face_landmarks[0].landmark
+        frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)   #mediapipe trabaja con formate rgb
+        multiface_landmarks = cara.process(frame)
+        landmarks = multiface_landmarks.multi_face_landmarks[0].landmark
 
-    w,h,_ = frame.shape
-    p_sup = punto(landmarks,386,w,h)   #386  =  landmark del parpado superior derecho
-    p_inf = punto(landmarks,374,w,h)   #374  =  landmark del parpado inferior derecho
-    o_der = punto(landmarks,454,w,h)   #454  =  landmark de la oreja derecha
-    o_izq = punto(landmarks,234,w,h)   #234  =  landmark de la oreja izquierda
+        w,h,_ = frame.shape
+        p_sup = punto(landmarks,386,w,h)   #386  =  landmark del parpado superior derecho
+        p_inf = punto(landmarks,374,w,h)   #374  =  landmark del parpado inferior derecho
+        o_der = punto(landmarks,454,w,h)   #454  =  landmark de la oreja derecha
+        o_izq = punto(landmarks,234,w,h)   #234  =  landmark de la oreja izquierda
 
-    pstn = pestaneo(p_sup,p_inf,o_der,o_izq)
-    inclinacion = inclinacion_cabeza(o_izq,o_der)
-    mvmnt = movimiento(inclinacion)
-    
-    
-    if mvmnt != "Nada":
-        print(f"Movió hacia la {mvmnt}")
-        print("CACA")
-    elif pstn == True:
-        print("Pestañeó")
-        print("PIPI")
+        pstn = pestaneo(p_sup,p_inf,o_der,o_izq)
+        inclinacion = inclinacion_cabeza(o_izq,o_der)
+        mvmnt = movimiento(inclinacion)
+        
+        
+        if mvmnt != "Nada" and (time()-head_cooldown) > 0.5:
+            head_cooldown = time()
+            print("----------------------------------------")
+            print(f"Movió hacia la {mvmnt}")
+            print("----------------------------------------")
+        elif pstn == True and (time() - blink_cooldown) > 0.5 and (time() - head_cooldown) > 0.5:
+            blink_cooldown = time()
+            print("----------------------------------------")
+            print("Pestañeó")
+            print("----------------------------------------")
+        
 
