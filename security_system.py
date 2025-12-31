@@ -9,29 +9,7 @@ import joblib
 import time
 import string
 
-data = np.load("calibration_jesus.npz")
-cameraMatrix = data["cameraMatrix"]
-distCoeffs = data["distCoeffs"]
-
-#model = joblib.load("char_mlp.pkl")
-
-model = EMNIST_CNN()
-model.load_state_dict(torch.load("emnist_cnn_balanced.pth", map_location="cpu"))
-model.eval()
-
-# PARAMS SECURITY
-CHANGE_THRESHOLD = 1000
-FORGET_TIME = 3.0
-CONFIRMATION_TIME = 2.0
-CONF_THRESHOLD = 0.8
-
-digits = {i: str(i) for i in range(10)}
-letters = {i+10: c for i, c in enumerate(string.ascii_uppercase)}
-class_map = {**digits, **letters}
-
-
-
-def main(camera_index=0, width=1280, height=720):
+def main(camera_index=0, width=1280, height=720, calibration=False):
     # # Initialize video capture with the specified camera index
     # cap = cv2.VideoCapture(camera_index)
     # if not cap.isOpened():
@@ -41,6 +19,27 @@ def main(camera_index=0, width=1280, height=720):
     # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
     # Force to use DIRECTSHOW
+    if calibration is not False:
+        data = np.load(calibration)
+        cameraMatrix = data["cameraMatrix"]
+        distCoeffs = data["distCoeffs"]
+
+    # comment depending on the model you want to use
+    #model = joblib.load("char_mlp.pkl")
+
+    model = EMNIST_CNN()
+    model.load_state_dict(torch.load("emnist_cnn_balanced.pth", map_location="cpu"))
+    model.eval()
+
+    # PARAMS SECURITY
+    CHANGE_THRESHOLD = 1000
+    FORGET_TIME = 3.0
+    CONFIRMATION_TIME = 2.0
+    CONF_THRESHOLD = 0.8
+
+    digits = {i: str(i) for i in range(10)}
+    letters = {i+10: c for i, c in enumerate(string.ascii_uppercase)}
+    class_map = {**digits, **letters}
 
     attempts = 5
     true_password = "JESUS25"
@@ -62,12 +61,13 @@ def main(camera_index=0, width=1280, height=720):
     ret, frame = cap.read()
     h, w = frame.shape[:2]
 
-    newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(
-        cameraMatrix,
-        distCoeffs,
-        (w, h),
-        0,
-        (w, h))
+    if calibration is not False:
+        newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(
+            cameraMatrix,
+            distCoeffs,
+            (w, h),
+            0,
+            (w, h))
 
     try:
         while True:
@@ -76,13 +76,15 @@ def main(camera_index=0, width=1280, height=720):
                 print("No frame received (the camera may have been disconnected).")
                 break
 
+            uframe = frame
             # uditsorted frame
-            uframe = cv2.undistort(
-                frame,
-                cameraMatrix,
-                distCoeffs,
-                None,
-                newCameraMatrix)
+            if calibration is not False:
+                uframe = cv2.undistort(
+                    frame,
+                    cameraMatrix,
+                    distCoeffs,
+                    None,
+                    newCameraMatrix)
     
             #x, y, w_roi, h_roi = roi
             #uframe = uframe[y:y+h_roi, x:x+w_roi]
@@ -138,7 +140,6 @@ def main(camera_index=0, width=1280, height=720):
 
                 display_text = "Waiting..."
                 if diff > CHANGE_THRESHOLD:
-                    # CHATGPT Preprocesado para PyTorch: [1, 1, 28, 28]
                     char_tensor = torch.tensor(
                         char_28 / 255.0,
                         dtype=torch.float32
@@ -221,4 +222,6 @@ def main(camera_index=0, width=1280, height=720):
 
 if __name__ == "__main__":
     # If the built-in webcam is not at index 0, change the first argument: main(1)
-    main(camera_index=0, width=1280, height=720)
+    calibration = "calibration_jesus.npz"
+    calibration = False
+    main(camera_index=0, width=1280, height=720, calibration=calibration)
