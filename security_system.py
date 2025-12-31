@@ -9,7 +9,7 @@ import joblib
 import time
 import string
 
-def main(camera_index=0, width=1280, height=720, calibration=False):
+def security_system(camera_index=0, width=1280, height=720, calibration=False):
     # # Initialize video capture with the specified camera index
     # cap = cv2.VideoCapture(camera_index)
     # if not cap.isOpened():
@@ -224,4 +224,4 @@ if __name__ == "__main__":
     # If the built-in webcam is not at index 0, change the first argument: main(1)
     calibration = "calibration_jesus.npz"
     calibration = False
-    main(camera_index=0, width=1280, height=720, calibration=calibration)
+    security_system(camera_index=0, width=1280, height=720, calibration=calibration)
