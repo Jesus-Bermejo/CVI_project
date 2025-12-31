@@ -78,7 +78,7 @@ print("Error RMS de reproyección:", rms)
 
 # no tiene sentido hacer la de extrínsecos para nuetsro caso de uso
 
-calibration_name = "calibration_jesus.npz"   # el .npz es importante
+calibration_name = "calibration.npz"   # el .npz es importante
 np.savez(
     calibration_name,
     cameraMatrix=intrinsics,
