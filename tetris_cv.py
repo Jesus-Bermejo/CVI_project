@@ -1,130 +1,111 @@
-"""
-Autor: Alejandro Boix 
-Fecha: 24/12/2025
-Para qué disfrutar de la Navidad en familia si podemos estar haciendo un proyecto de vision por ordenador?
-
-"""
-
-
-"""
-Se utilizará la clase FaceMesh de la librería solutions de mediapipe.
-Esta clase utiliza diferentes parámetros como static_image_mode, max_num_faces, refine_landmarks, min_detecton_confidence
-y min_tracking confidence. Se utilizarán los valores predeterminados por la clase.
-En un tiempo futuro, y depende de los resultados, se valorará la posibilidad de cambiar el estado base de refine_landmarks
-de False a True.
-"""
-
 import cv2
-import mediapipe
+import mediapipe as mp
 import numpy as np
 from time import time
 
-def punto(landmarks,i,w,h):
-    """
-    Toma el conjunto de landmarks y el número de landmark deseado y devuelve las coordenadas de ese punto
-    
-    :param landmarks: Conjunto de landmarks con los que se trata
-    :param i: Número del landmark deseado
-    :param w: Anchura de la imagen en píxeles
-    :param h: Altura de la imagen en píxeles
-    """
-    return np.array([w*landmarks[i].x,h*landmarks[i].y])
+# --- Configuración landmarks ojos ---
+EYE_R = [33, 160, 158, 133, 153, 144]  # derecho
+EYE_L = [362, 385, 387, 263, 373, 380]  # izquierdo
+EAR_THRESH = 0.21  # umbral de parpadeo
+BUFFER_LEN = 5
+COOLDOWN = 0.4  # cooldown entre movimientos/rotaciones
 
+def eye_aspect_ratio(landmarks, eye_indices, w, h):
+    coords = [np.array([w*landmarks[i].x, h*landmarks[i].y]) for i in eye_indices]
+    vertical = np.linalg.norm(coords[1]-coords[5]) + np.linalg.norm(coords[2]-coords[4])
+    horizontal = np.linalg.norm(coords[0]-coords[3])
+    return vertical / horizontal
 
-def dist_puntos(p1,p2):
-    """
-    Devueleve la distancia euclidiana de dos puntos en una imagen
-    
-    :param p1: Punto 1
-    :param p2: Punto 2
-    """
-    return np.sqrt((p2[0]-p1[0])**2+(p2[1]-p1[1])**2)
-
-def pestaneo(p_sup, p_inf,o_izq,o_der):
-    """
-    Verifica si los ojos están cerrados computando la distancia entre el párpado superior derecho y el inferior derecho.
-    Se ha elegido 20 como threshold para definir un ojo cerrado o abierto tras varias pruebas con imágenes propias.
-    
-    :param p_sup: Pixel representando el párpado superior derecho
-    :param p_inf: Pixel representando el párpado superior derecho
-    """
-    dist_ojos = dist_puntos(p_sup,p_inf)
-    dist_orejas = dist_puntos(o_izq,o_der)
-
-    if dist_ojos/dist_orejas < 0.07:
-        return True
-    else:
-        return False
-    
-def inclinacion_cabeza(o_izq,o_der):
-    """
-    Devuelve la inclinación de la cabeza en acorde a la inclinación de la recta que une el landmark de la oreja derecha 
-    con el de la oreja izquierda
-    
-    :param o_izq: Pixel representando la oreja izquierda
-    :param o_der: Pixel representando la oreja derecha
-    """
+def inclinacion_cabeza(o_izq, o_der):
     cambio_x = o_der[0] - o_izq[0]
     cambio_y = o_der[1] - o_izq[1]
-    return cambio_y/cambio_x
+    return cambio_y / cambio_x
 
 def movimiento(inclinacion):
-    """
-    Toma la inclinación de la cabeza y devuelve si se ha inclinado hacia un lado, hacia el otro, o no se ha inclinado
-    
-    :param inclinacion: Descripción
-    """
     if inclinacion > 0.4:
         return "izquierda"
     elif inclinacion < -0.4:
         return "derecha"
     else:
         return "Nada"
-    
-
 
 def computer_vision(app):
-    cap = cv2.VideoCapture(0)
-    cara = mediapipe.solutions.face_mesh.FaceMesh()
-    blink_cooldown = time()   #temporizadores para que no tome el mismo movimiento dos veces seguidas
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    mp_face_mesh = mp.solutions.face_mesh
+    face_mesh = mp_face_mesh.FaceMesh(
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+
+    blink_buffer_r = []
+    blink_buffer_l = []
+    blink_cooldown = time()
     head_cooldown = time()
 
     while cap.isOpened():
-        ret,frame = cap.read()
+        ret, frame = cap.read()
         if not ret:
             break
 
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = face_mesh.process(frame_rgb)
+        h, w, _ = frame.shape
+
+        if results.multi_face_landmarks:
+            landmarks = results.multi_face_landmarks[0].landmark
+
+            EAR_r = eye_aspect_ratio(landmarks, EYE_R, w, h)
+            EAR_l = eye_aspect_ratio(landmarks, EYE_L, w, h)
+
+            blink_buffer_r.append(EAR_r < EAR_THRESH)
+            blink_buffer_l.append(EAR_l < EAR_THRESH)
+            if len(blink_buffer_r) > BUFFER_LEN:
+                blink_buffer_r.pop(0)
+            if len(blink_buffer_l) > BUFFER_LEN:
+                blink_buffer_l.pop(0)
+
+            blink_both = sum(blink_buffer_r[-3:]) == 3 and sum(blink_buffer_l[-3:]) == 3
+
+            # Orejas
+            o_der = np.array([w*landmarks[454].x, h*landmarks[454].y])
+            o_izq = np.array([w*landmarks[234].x, h*landmarks[234].y])
+            inclin = inclinacion_cabeza(o_izq, o_der)
+            mvmnt = movimiento(inclin)
+
+            t = time()
+            # Movimientos cabeza
+            if mvmnt != "Nada" and (t - head_cooldown) > COOLDOWN:
+                head_cooldown = t
+                app.cola_de_eventos.put(mvmnt)
+
+            # Parpadeo(ambos ojos)
+            elif blink_both and (t - blink_cooldown) > COOLDOWN and (t - head_cooldown) > COOLDOWN:
+                blink_cooldown = t
+                blink_buffer_r.clear()
+                blink_buffer_l.clear()
+                app.cola_de_eventos.put("PSTN")
 
 
-        frame = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)   #mediapipe trabaja con formate rgb
+            for idx in EYE_R + EYE_L + [454, 234]:
+                x, y = int(w*landmarks[idx].x), int(h*landmarks[idx].y)
+                cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)
 
-        
+            # Tracker
+            xs = [int(w*lm.x) for lm in landmarks]
+            ys = [int(h*lm.y) for lm in landmarks]
+            cv2.rectangle(frame, (min(xs), min(ys)), (max(xs), max(ys)), (255, 0, 0), 2)
 
-        multiface_landmarks = cara.process(frame)
-        landmarks = multiface_landmarks.multi_face_landmarks[0].landmark
+        frame = cv2.flip(frame, 1)
+        cv2.imshow("Tetris Tracker", frame)
 
-        w,h,_ = frame.shape
-        p_sup = punto(landmarks,386,w,h)   #386  =  landmark del parpado superior derecho
-        p_inf = punto(landmarks,374,w,h)   #374  =  landmark del parpado inferior derecho
-        o_der = punto(landmarks,454,w,h)   #454  =  landmark de la oreja derecha
-        o_izq = punto(landmarks,234,w,h)   #234  =  landmark de la oreja izquierda
+        # Salida con 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-        pstn = pestaneo(p_sup,p_inf,o_der,o_izq)
-        inclinacion = inclinacion_cabeza(o_izq,o_der)
-        mvmnt = movimiento(inclinacion)
-        
-        
-        if mvmnt != "Nada" and (time()-head_cooldown) > 0.5:
-            head_cooldown = time()
-            print("----------------------------------------")
-            print(f"Movió hacia la {mvmnt}")
-            app.cola_de_eventos.put(mvmnt)
-            print("----------------------------------------")
-        elif pstn == True and (time() - blink_cooldown) > 0.5 and (time() - head_cooldown) > 0.5:
-            blink_cooldown = time()
-            print("----------------------------------------")
-            print("Pestañeó")
-            app.cola_de_eventos.put("PSTN")
-            print("----------------------------------------")
-        
-
+    cap.release()
+    cv2.destroyAllWindows()

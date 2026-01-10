@@ -149,9 +149,20 @@ class Application(tk.Frame):
 
 
 
+# --- MAIN ---
 root = tk.Tk()
 app = Application(master=root)
-hilo = Thread(target=tetris_cv.computer_vision,args = (app,))
-hilo.start()
-app.mainloop()
-hilo.join()
+
+# Thread del tracker
+tracker_thread = Thread(target=tetris_cv.computer_vision, args=(app,))
+tracker_thread.start()
+
+# Cerrar con 'q'
+def on_key(event):
+    if event.keysym.lower() == 'q':
+        app.stop()
+        root.destroy()
+
+root.bind("<Key>", on_key)
+root.mainloop()
+tracker_thread.join()
