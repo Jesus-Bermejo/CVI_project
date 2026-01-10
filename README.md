@@ -36,7 +36,7 @@ El proyecto utiliza **OpenCV, PyTorch, MediaPipe y Tkinter** para ofrecer intera
 | Mover derecha  | Cabeza hacia **derecha** |
 | Salir del juego| Presionar `q` |
 
-> Recomendación: buena iluminación y cámara frontal para mayor precisión.
+> Se recomienda buena iluminación y cámara frontal para mayor precisión.
 
 ![Tetris Control GIF](docs/tetris_control.gif)  
 
@@ -64,4 +64,5 @@ El proyecto utiliza **OpenCV, PyTorch, MediaPipe y Tkinter** para ofrecer intera
 
 - **Jesús Bermejo Úbeda**
 - **Alejandro Boix Bayarri**
+
 Para la asignatura de **Visión por Ordenador I** del curso 2025-2026
