@@ -29,10 +29,32 @@ def movimiento(inclinacion):
     else:
         return "Nada"
 
-def computer_vision(app):
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+def computer_vision(app, calibration=False, camera_index=0):
+
+    cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        print(f"Could not open the camera (index {camera_index}).")
+        return
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    ret, frame = cap.read()
+    h, w = frame.shape[:2]
+
+    try:
+        if calibration is not False:
+            data = np.load(calibration)
+            cameraMatrix = data["cameraMatrix"]
+            distCoeffs = data["distCoeffs"]
+            newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(
+                cameraMatrix,
+                distCoeffs,
+                (w, h),
+                0,
+                (w, h))
+    except Exception as e:
+        print(e)
+        return
 
     mp_face_mesh = mp.solutions.face_mesh
     face_mesh = mp_face_mesh.FaceMesh(
@@ -53,6 +75,13 @@ def computer_vision(app):
             break
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if calibration is not False:
+                frame_rgb = cv2.undistort(
+                    frame_rgb,
+                    cameraMatrix,
+                    distCoeffs,
+                    None,
+                    newCameraMatrix)
         results = face_mesh.process(frame_rgb)
         h, w, _ = frame.shape
 

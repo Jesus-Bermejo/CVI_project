@@ -1,15 +1,11 @@
 import cv2
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
 from security_utils import *
-import joblib
 import time
 import string
 
-def security_system(camera_index=0, width=1280, height=720, calibration=False):
+def security_system(camera_index=0, calibration=False, user_password=None, debug=False):
     # # Initialize video capture with the specified camera index
     # cap = cv2.VideoCapture(camera_index)
     # if not cap.isOpened():
@@ -19,10 +15,14 @@ def security_system(camera_index=0, width=1280, height=720, calibration=False):
     # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
     # Force to use DIRECTSHOW
-    if calibration is not False:
-        data = np.load(calibration)
-        cameraMatrix = data["cameraMatrix"]
-        distCoeffs = data["distCoeffs"]
+    try:
+        if calibration is not False:
+            data = np.load(calibration)
+            cameraMatrix = data["cameraMatrix"]
+            distCoeffs = data["distCoeffs"]
+    except Exception as e:
+        print(e)
+        return 0
 
     # comment depending on the model you want to use
     #model = joblib.load("char_mlp.pkl")
@@ -42,7 +42,11 @@ def security_system(camera_index=0, width=1280, height=720, calibration=False):
     class_map = {**digits, **letters}
 
     attempts = 5
-    true_password = "JESUS25"
+    user_password = user_password.upper()
+    if user_password != None:
+        true_password = user_password
+    if user_password == None:
+        return 0
     password_input = []
     last_char = None
     last_roi_frame = None
@@ -182,10 +186,10 @@ def security_system(camera_index=0, width=1280, height=720, calibration=False):
                 cv2.putText(uframe, display_text, (inner_x, inner_y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2)
 
-
-                cv2.imshow("bin", binary)
-                cv2.imshow("roi", char_roi)
-                cv2.imshow("28", char_28)
+                if debug:
+                    cv2.imshow("bin", binary)
+                    cv2.imshow("roi", char_roi)
+                    cv2.imshow("28", char_28)
 
 
             else:
@@ -205,23 +209,26 @@ def security_system(camera_index=0, width=1280, height=720, calibration=False):
             cv2.putText(uframe, f"Attempts: {attempts}", (460,50),   # (horizontal, vertical)
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,0), 2)
             cv2.imshow("Frame", uframe)
-            #cv2.imshow("gray", gray)
-            #cv2.imshow("blur", blur)
-            #cv2.imshow("edges", edges)
-            #cv2.imshow("contours", contours)
+            if debug:
+                cv2.imshow("gray", gray)
+                cv2.imshow("blur", blur)
+                cv2.imshow("edges", edges)
+                #cv2.imshow("contours", contours)
 
             # Wait 1 ms for a key; exit with 'q' or ESC
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q') or key == 27:
                 break
-    except KeyboardInterrupt:
-        pass
+    except Exception as e:
+        print(e)
     finally:
         cap.release()
         cv2.destroyAllWindows()
+        return 0
 
 if __name__ == "__main__":
     # If the built-in webcam is not at index 0, change the first argument: main(1)
+    user_password = "JESUS"
     calibration = "calibration_jesus.npz"
     calibration = False
-    security_system(camera_index=0, width=1280, height=720, calibration=calibration)
+    security_system(camera_index=0, calibration=calibration, user_password=user_password)

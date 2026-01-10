@@ -149,20 +149,26 @@ class Application(tk.Frame):
 
 
 
-# --- MAIN ---
-root = tk.Tk()
-app = Application(master=root)
+def play_tetris_cv(calibration=False, camera_index=0):
+    root = tk.Tk()
+    app = Application(master=root)
 
-# Thread del tracker
-tracker_thread = Thread(target=tetris_cv.computer_vision, args=(app,))
-tracker_thread.start()
+    # Thread del tracker
+    tracker_thread = Thread(target=tetris_cv.computer_vision, args=(app,calibration, camera_index))
+    tracker_thread.start()
 
-# Cerrar con 'q'
-def on_key(event):
-    if event.keysym.lower() == 'q':
-        app.stop()
-        root.destroy()
+    # Cerrar con 'q'
+    def on_key(event):
+        if event.keysym.lower() == 'q':
+            app.stop()
+            root.destroy()
 
-root.bind("<Key>", on_key)
-root.mainloop()
-tracker_thread.join()
+    root.bind("<Key>", on_key)
+    root.mainloop()
+    tracker_thread.join()
+
+
+if __name__ == "__main__":
+    calibration = "calibration_jesus.npz"
+    calibration = False
+    play_tetris_cv(calibration=calibration)
