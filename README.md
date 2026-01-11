@@ -1,10 +1,5 @@
 # CVI Project
 
-![Project Banner](docs/banner.png)  
-*Demostración del juego Tetris controlado con visión por ordenador.*
-
----
-
 ## Descripción
 
 **CVI Project** combina **visión por ordenador, aprendizaje profundo y control gestual** para crear una experiencia interactiva única:
@@ -37,8 +32,6 @@ El proyecto utiliza **OpenCV, PyTorch, MediaPipe y Tkinter** para ofrecer intera
 | Salir del juego| Presionar `q` |
 
 > Se recomienda buena iluminación y cámara frontal para mayor precisión.
-
-![Tetris Control GIF](docs/tetris_control.gif)  
 
 ---
 
