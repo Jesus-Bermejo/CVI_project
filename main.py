@@ -3,7 +3,7 @@ import juego
 
 ### VARIABLES PARA MODIFICAR
 calibration = "calibration_jesus.npz"
-#calibration = False
+calibration = False
 
 user_password = "COMPUTERVISION2025"
 

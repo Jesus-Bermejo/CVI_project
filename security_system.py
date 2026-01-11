@@ -218,7 +218,7 @@ def security_system(camera_index=0, calibration=False, user_password=None, debug
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,0), 2)
             cv2.putText(uframe, f"FPS: {fps:.2f}", (460, 50), 
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            cv2.imshow("Frame", uframe)
+            cv2.imshow(window_name, uframe)
             if debug:
                 cv2.imshow("gray", gray)
                 cv2.imshow("blur", blur)
@@ -240,4 +240,4 @@ if __name__ == "__main__":
     user_password = "JESUS"
     calibration = "calibration_jesus.npz"
     calibration = False
-    security_system(camera_index=0, calibration=calibration, user_password=user_password)
+    security_system(camera_index=0, calibration=calibration, user_password=user_password, debug=False)
