@@ -69,10 +69,18 @@ def computer_vision(app, calibration=False, camera_index=0):
     blink_cooldown = time()
     head_cooldown = time()
 
+    prev_time = time()
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+
+        curr_time = time()
+        problematic_zero = curr_time - prev_time
+        if problematic_zero < 0.0000001:
+            problematic_zero = 1
+        fps = 1 / (problematic_zero)
+        prev_time = curr_time
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if calibration is not False:
@@ -82,6 +90,7 @@ def computer_vision(app, calibration=False, camera_index=0):
                     distCoeffs,
                     None,
                     newCameraMatrix)
+                
         results = face_mesh.process(frame_rgb)
         h, w, _ = frame.shape
 
@@ -130,6 +139,8 @@ def computer_vision(app, calibration=False, camera_index=0):
             cv2.rectangle(frame, (min(xs), min(ys)), (max(xs), max(ys)), (255, 0, 0), 2)
 
         frame = cv2.flip(frame, 1)
+        cv2.putText(frame, f"FPS: {fps:.2f}", (460, 50), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow("Tetris Tracker", frame)
 
         # Salida con 'q'

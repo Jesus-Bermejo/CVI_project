@@ -73,12 +73,20 @@ def security_system(camera_index=0, calibration=False, user_password=None, debug
             0,
             (w, h))
 
+    prev_time = time.time()
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
                 print("No frame received (the camera may have been disconnected).")
                 break
+
+            curr_time = time.time()
+            problematic_zero = curr_time - prev_time
+            if problematic_zero < 0.0000001:
+                problematic_zero = 1
+            fps = 1 / (problematic_zero)
+            prev_time = curr_time
 
             uframe = frame
             # uditsorted frame
@@ -179,7 +187,7 @@ def security_system(camera_index=0, calibration=False, user_password=None, debug
                                     print("You ran out of attempts")
                                     return 0
                             elif true_password == ''.join(password_input):
-                                print("Contrasña correcta")
+                                print("Contraseña correcta")
                                 return 1
 
 
@@ -206,8 +214,10 @@ def security_system(camera_index=0, calibration=False, user_password=None, debug
 
             cv2.putText(uframe, f"Password: {''.join(password_input)}", (30,50),   # (horizontal, vertical)
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2)
-            cv2.putText(uframe, f"Attempts: {attempts}", (460,50),   # (horizontal, vertical)
+            cv2.putText(uframe, f"Attempts: {attempts}", (460,100),   # (horizontal, vertical)
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,0), 2)
+            cv2.putText(uframe, f"FPS: {fps:.2f}", (460, 50), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             cv2.imshow("Frame", uframe)
             if debug:
                 cv2.imshow("gray", gray)
@@ -224,7 +234,6 @@ def security_system(camera_index=0, calibration=False, user_password=None, debug
     finally:
         cap.release()
         cv2.destroyAllWindows()
-        return 0
 
 if __name__ == "__main__":
     # If the built-in webcam is not at index 0, change the first argument: main(1)
